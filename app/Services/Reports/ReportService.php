@@ -9,6 +9,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Illuminate\Http\RedirectResponse;
 
 class ReportService implements ReportContract
 {
@@ -16,21 +17,28 @@ class ReportService implements ReportContract
     
     /**
      * this is the entry point for generating 
-     * different type reports regarding condition
+     * different type reports regarding types
      * 
      *
      * @param  array $data report types
      * @return Collection report
      */
-    public function generateReport(array $data): Collection 
+    public function generateReport(array $data): Collection|RedirectResponse
     {
         try {
-            return match ($data['type']) {
-                TimeLog::DAY_REPORT => $this->generateDayReport(),
-                TimeLog::WEEK_REPORT => $this->generateWeekReport(),
-                TimeLog::MONTH_REPORT => $this->generateMonthReport(),
+            $carbon = Carbon::now();
+            $endDate = $carbon->toDateString();
+            
+            $startDate = match($data['type']) {
+                TimeLog::DAY_REPORT => $carbon->toDateString(),
+                TimeLog::WEEK_REPORT => $carbon->subWeek()->toDateString(),
+                TimeLog::MONTH_REPORT => $carbon->subMonth()->toDateString(),
                 default => new NotFoundHttpException('Report Not Found.'),
             };
+            
+            $result = TimeLog::calculateTotalTimeByProjectWise(endDate: $endDate, startDate: $startDate);
+            
+            return $this->setSecondsToHour($result);
         } catch (\Throwable $th) {
             Log::error($th);
             
@@ -38,63 +46,6 @@ class ReportService implements ReportContract
         }
     }
     
-    /**
-     * generate day report by project wise
-     *
-     * @return Collection report
-     */
-    function generateDayReport(): Collection 
-    {
-        try {
-            $carbon = Carbon::now();
-            $result = TimeLog::calculateTotalTimeByProjectWise(endDate:$carbon->toDateString(), startDate: $carbon->toDateString());
-            
-            return $this->setSecondsToHour($result);
-        } catch (\Throwable $th) {
-            Log::error($th);
-            
-            return back()->withErrors(['error' => 'Woops! something went wrong.']);
-        }
-    }
-
-    /**
-     * generate week report by project wise
-     *
-     * @return Collection report
-     */
-    function generateWeekReport(): Collection 
-    {
-        try {
-            $carbon = Carbon::now();
-            $result = TimeLog::calculateTotalTimeByProjectWise(endDate: $carbon->toDateString(), startDate: $carbon->subWeek()->toDateString());
-            
-            return $this->setSecondsToHour($result);
-        } catch (\Throwable $th) {
-            Log::error($th);
-            
-            return back()->withErrors(['error' => 'Woops! something went wrong.']);
-        }
-    }
-
-    /**
-     * generate month report by project wise
-     *
-     * @return Collection report
-     */
-    function generateMonthReport(): ?Collection 
-    {
-        try {
-            $carbon = Carbon::now();
-            $result = TimeLog::calculateTotalTimeByProjectWise(endDate: $carbon->toDateString(), startDate: $carbon->subMonth()->toDateString());
-            
-            return $this->setSecondsToHour($result);
-        } catch (\Throwable $th) {
-            Log::error($th);
-            
-            return back()->withErrors(['error' => 'Woops! something went wrong.']);
-        }
-    }
-
     /**
      * convert the total seconds to hour format
      * H:i:s

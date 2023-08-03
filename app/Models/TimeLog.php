@@ -67,6 +67,9 @@ class TimeLog extends Model
      */
     public static function calculateTotalTimeByProjectWise(string $startDate, string $endDate): Collection
     {
+        // without eloquent
+        // another possible way
+        
         // $result = DB::select("
         //     SELECT
         //         `project_id`,

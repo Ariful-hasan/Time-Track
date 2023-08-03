@@ -9,6 +9,7 @@
 `DB_USERNAME=root`
 `DB_PASSWORD=`
 3.  Go to the project directory and run below command.
+`composer install`
 `php artisan serve`
 `php artisan migrate`
 `php artisan db:seed`

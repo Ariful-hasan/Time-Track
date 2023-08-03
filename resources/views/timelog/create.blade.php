@@ -27,7 +27,7 @@
                         <div>
                             <select id="project_id" name="project_id">
                                 @foreach ($projects as $project)
-                                    <option value="{{ $project->id }}">{{ $project->name }}</option>
+                                    <option value="{{ $project->id }}" {{ old('project_id')==$project->id?'selected':'' }}>{{ $project->name }}</option>
                                 @endforeach
                               </select>
                         </div>

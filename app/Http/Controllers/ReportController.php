@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Contracts\ReportContract;
 use App\Http\Requests\ReportRequest;
 use Illuminate\Http\Request;
+use Illuminate\View\View;
 
 class ReportController extends Controller
 {
@@ -15,20 +16,18 @@ class ReportController extends Controller
         $this->types = config('report.types');
     }
 
-    function index() 
+    function index(): View
     {
-        $projects = $this->service->getAllProjects();
         $types = $this->types;
         
-        return view('reports.index', compact('projects', 'types'));
+        return view('reports.index', compact('types'));
     }
 
-    function generateReport(ReportRequest $request) 
+    function generateReport(ReportRequest $request): View
     {
-        $projects = $this->service->getAllProjects();
         $types = $this->types;
         $reports = $this->service->generateReport($request->validated());
-
-        return view('reports.index', compact('projects', 'types', 'reports'));
+        
+        return view('reports.index', compact('types', 'reports'));
     }
 }

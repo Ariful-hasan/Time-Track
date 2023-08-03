@@ -8,6 +8,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\DB;
 
 class TimeLog extends Model
 {
@@ -55,15 +56,39 @@ class TimeLog extends Model
     {
         return Carbon::parse($this->attributes['end_time'])->format("H:i");
     }
-
-    public static function calculateTotalByDate(string $date, string $projectId): Collection
+    
+    /**
+     * raw query is one possible way
+     * but here we try to use eloquent
+     *
+     * @param  strin $startDate
+     * @param  string $endDate
+     * @return Collection with project and total time for each project
+     */
+    public static function calculateTotalTimeByProjectWise(string $startDate, string $endDate): Collection
     {
-        $result = self::whereDate('created_at', $date)
-        ->whereProjectId($projectId)
-        ->selectRaw('SUM(TIMESTAMPDIFF(SECOND, start_time, end_time)) as total')
-        ->first();
+        // $result = DB::select("
+        //     SELECT
+        //         `project_id`,
+        //         SUM(TIMESTAMPDIFF(SECOND, start_time, end_time)) AS total
+        //     FROM
+        //         `time_logs`
+        //     WHERE
+        //         DATE(created_at) BETWEEN ? AND ?
+        //     AND `user_id` = ?
+        //     GROUP BY
+        //         `project_id`
+        // ", [$startDate, $endDate, auth()->user()->id]);
 
-        return collect($result);
+
+        $result = TimeLog::with(['project'])
+        ->select('project_id', DB::raw('SUM(TIMESTAMPDIFF(SECOND, start_time, end_time)) AS total'))
+        ->whereDate('created_at', '>=', $startDate)
+        ->whereDate('created_at', '<=', $endDate)
+        ->groupBy('project_id')
+        ->get();
+        
+        return $result;
     }
        
 }

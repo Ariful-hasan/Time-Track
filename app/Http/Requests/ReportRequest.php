@@ -25,11 +25,6 @@ class ReportRequest extends FormRequest
         $types = collect(config('report.types'))->pluck('id')->toArray();
         
         return [
-            'project_id' => [
-                'required',
-                'integer',
-                Rule::exists('projects', 'id'),
-            ],
             'type' => 'required|string|in:' . implode(',', $types)
         ];
     }

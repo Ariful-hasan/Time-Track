@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Http\Requests\TimelogPostRequest;
 use App\Http\Requests\TimelogUpdateRequest;
 use App\Services\Timelogs\TimelogService;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\View\View;
 use Illuminate\Http\Request;
 
 class TimelogController extends Controller
@@ -17,7 +19,7 @@ class TimelogController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(): View
     {
         $timelogs = $this->service->index();
         
@@ -27,7 +29,7 @@ class TimelogController extends Controller
     /**
      * Show the form for creating a new resource.
      */
-    public function create()
+    public function create(): View
     {
         $projects = $this->service->getAllProjects();
 
@@ -37,7 +39,7 @@ class TimelogController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(TimelogPostRequest $request)
+    public function store(TimelogPostRequest $request): RedirectResponse
     {
         return $this->service->store($request->validated());
     }
@@ -53,7 +55,7 @@ class TimelogController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(string $id)
+    public function edit(string $id): View
     {
         $projects = $this->service->getAllProjects();
         $timelog = $this->service->getTimelogDetailsById($id);
@@ -64,7 +66,7 @@ class TimelogController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(TimelogUpdateRequest $request, string $id)
+    public function update(TimelogUpdateRequest $request, string $id): RedirectResponse
     {
         return $this->service->update($request->validated(), $id);
     }
@@ -72,7 +74,7 @@ class TimelogController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy(string $id): RedirectResponse
     {
         return $this->service->destroy($id);
     }

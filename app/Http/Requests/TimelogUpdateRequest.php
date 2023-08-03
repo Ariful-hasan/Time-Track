@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\TimeLog;
+use App\Rules\UpdateTimeAvailabilityRule;
 use App\Traits\TimelogTrait;
 use Carbon\Carbon;
 use Illuminate\Foundation\Http\FormRequest;
@@ -35,36 +36,7 @@ class TimelogUpdateRequest extends FormRequest
             'start_time' => [
                 'required',
                 'date_format:H:i',
-                function ($attribute, $value, $fail) {
-                    $timelog = TimeLog::findOrFail($this->route('timelog'));
-                    $create_at = Carbon::parse($timelog->created_at)->toDateString();
-
-                    $start_time = $this->setDateTime($value, Carbon::parse($create_at));
-                    $end_time = $this->setDateTime($this->get('end_time'), Carbon::parse($create_at));
-                    if ($timelog->start_time !== $start_time || $timelog->end_time !== $end_time) {
-                        
-                        $exist = TimeLog::where('id', '<>', $this->route('timelog'))
-                        ->where(function ($query) use ($start_time, $end_time) {
-                            $query->where(function ($subQuery) use ($start_time, $end_time) {
-                                $subQuery->where('start_time', '<=', $end_time)
-                                    ->where('end_time', '>=', $start_time);
-                            })
-                            ->orWhere(function ($subQuery) use ($start_time, $end_time) {
-                                $subQuery->where('start_time', '<=', $end_time)
-                                    ->where('end_time', '>=', $end_time);
-                            })
-                            ->orWhere(function ($subQuery) use ($start_time, $end_time) {
-                                $subQuery->where('start_time', '>=', $start_time)
-                                    ->where('end_time', '<=', $end_time);
-                            });
-                        })
-                        ->get();
-                        
-                        if (!$exist->isEmpty()) {
-                            $fail('Time exist.');
-                        }
-                    }
-                }
+                new UpdateTimeAvailabilityRule
             ],
             'end_time' => [
                 'required',

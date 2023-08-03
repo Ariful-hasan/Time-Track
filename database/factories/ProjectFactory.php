@@ -19,6 +19,7 @@ class ProjectFactory extends Factory
         return [
             'name' => fake()->name(),
             'description' => fake()->paragraph(1),
+            'user_id' => random_int(1, 100),
         ];
     }
 }

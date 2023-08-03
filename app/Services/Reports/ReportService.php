@@ -3,23 +3,32 @@
 namespace App\Services\Reports;
 
 use App\Contracts\ReportContract;
-use App\Models\Project;
 use App\Models\TimeLog;
+use App\Traits\TimelogTrait;
 use Carbon\Carbon;
-use Illuminate\Http\Request;
-use Illuminate\Support\Arr;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class ReportService implements ReportContract
 {
-    public function generateReport(array $data)
+    use TimelogTrait;
+    
+    /**
+     * this is the entry point for generating 
+     * different type reports regarding condition
+     * 
+     *
+     * @param  array $data report types
+     * @return Collection report
+     */
+    public function generateReport(array $data): Collection 
     {
         try {
             return match ($data['type']) {
-                TimeLog::DAY_REPORT => $this->generateDayReport($data['project_id']),
-                TimeLog::WEEK_REPORT => $this->generateWeekReport($data['project_id']),
-                TimeLog::MONTH_REPORT => $this->generateMonthReport($data['project_id']),
+                TimeLog::DAY_REPORT => $this->generateDayReport(),
+                TimeLog::WEEK_REPORT => $this->generateWeekReport(),
+                TimeLog::MONTH_REPORT => $this->generateMonthReport(),
                 default => new NotFoundHttpException('Report Not Found.'),
             };
         } catch (\Throwable $th) {
@@ -28,24 +37,19 @@ class ReportService implements ReportContract
             return back()->withErrors(['error' => 'Woops! something went wrong.']);
         }
     }
-
-    public function getAllProjects()
-    {
-        try {
-            return Project::select( Project::ID, Project::NAME)->get();
-        } catch (\Throwable $th) {
-            Log::error($th);
-            
-            return back()->withErrors(['error' => 'Woops! something went wrong.']);
-        }
-    }
-
-    function generateDayReport(string $projectId)
+    
+    /**
+     * generate day report by project wise
+     *
+     * @return Collection report
+     */
+    function generateDayReport(): Collection 
     {
         try {
             $carbon = Carbon::now();
-
-            return TimeLog::calculateTotalByDate($carbon->toDateString(), $projectId);
+            $result = TimeLog::calculateTotalTimeByProjectWise(endDate:$carbon->toDateString(), startDate: $carbon->toDateString());
+            
+            return $this->setSecondsToHour($result);
         } catch (\Throwable $th) {
             Log::error($th);
             
@@ -53,13 +57,56 @@ class ReportService implements ReportContract
         }
     }
 
-    function generateWeekReport(string $projectId)
+    /**
+     * generate week report by project wise
+     *
+     * @return Collection report
+     */
+    function generateWeekReport(): Collection 
     {
-        
+        try {
+            $carbon = Carbon::now();
+            $result = TimeLog::calculateTotalTimeByProjectWise(endDate: $carbon->toDateString(), startDate: $carbon->subWeek()->toDateString());
+            
+            return $this->setSecondsToHour($result);
+        } catch (\Throwable $th) {
+            Log::error($th);
+            
+            return back()->withErrors(['error' => 'Woops! something went wrong.']);
+        }
     }
 
-    function generateMonthReport(string $projectId)
+    /**
+     * generate month report by project wise
+     *
+     * @return Collection report
+     */
+    function generateMonthReport(): ?Collection 
     {
-        
+        try {
+            $carbon = Carbon::now();
+            $result = TimeLog::calculateTotalTimeByProjectWise(endDate: $carbon->toDateString(), startDate: $carbon->subMonth()->toDateString());
+            
+            return $this->setSecondsToHour($result);
+        } catch (\Throwable $th) {
+            Log::error($th);
+            
+            return back()->withErrors(['error' => 'Woops! something went wrong.']);
+        }
+    }
+
+    /**
+     * convert the total seconds to hour format
+     * H:i:s
+     *
+     * @return Collection report
+     */
+    protected function setSecondsToHour(Collection $collection): Collection
+    {
+        return $collection->map(function ($report) {
+            $report->total = $this->secondsToHourFormat($report->total);
+
+            return $report;
+        });
     }
 }

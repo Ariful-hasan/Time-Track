@@ -7,24 +7,48 @@ use App\Models\TimeLog;
 use App\Services\AbstractServices;
 use App\Traits\TimelogTrait;
 use Carbon\Carbon;
-use Illuminate\Support\Arr;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 
 class TimelogService extends AbstractServices
 {
     use TimelogTrait;
-    
-    public function getAllProjects()
+        
+    /**
+     * all projects list
+     *
+     * @return Collection
+     */
+    public function getAllProjects(): Collection
     {
         return Project::select( Project::ID, Project::NAME)->get();
     }
-
-    public function index()
+    
+    /**
+     * pagination list of Timelog data
+     *
+     * @return LengthAwarePaginator or RedirectResponse
+     */
+    public function index(): LengthAwarePaginator|RedirectResponse
     {
-        return TimeLog::with(['project', 'user'])->paginate(10);
-    }
+        try {
+            return TimeLog::with(['project', 'user'])->paginate(10);
+        } catch (\Throwable $th) {
+            Log::error($th);
 
-    public function store(array $data)
+            return redirect()->back()->withErrors(['error' => 'Woops!, Something went wrong!']);
+        }
+    }
+    
+    /**
+     * store new record of Timelog
+     *
+     * @param  array $data valid input
+     * @return RedirectResponse
+     */
+    public function store(array $data): RedirectResponse
     {
         try {
             $data['start_time'] = $this->setDateTime($data['start_time'], Carbon::today());
@@ -39,8 +63,15 @@ class TimelogService extends AbstractServices
             return back()->withErrors(['error' => 'Failed to create.']);
         }
     }
-
-    public function update(array $data, string $id)
+    
+    /**
+     * update existing record of Timelog
+     *
+     * @param  array $data valid input
+     * @param  string $id primary key of Timelog
+     * @return RedirectResponse
+     */
+    public function update(array $data, string $id): RedirectResponse
     {
         try {
             $timelog = TimeLog::find($id);
@@ -58,8 +89,14 @@ class TimelogService extends AbstractServices
             return back()->withErrors(['error' => 'Failed to update data.']);
         }
     }
-
-    public function destroy(string $id)
+    
+    /**
+     * destroy one record from Timelog
+     *
+     * @param  string $id
+     * @return RedirectResponse
+     */
+    public function destroy(string $id): RedirectResponse
     {
         try {
             TimeLog::destroy($id);
@@ -71,8 +108,14 @@ class TimelogService extends AbstractServices
             return back()->withErrors(['error' => 'Failed to delete data.']);
         }
     }
-
-    public function getTimelogDetailsById(string $id)
+    
+    /**
+     * get one record of Timelog
+     *
+     * @param  string $id
+     * @return TimeLog
+     */
+    public function getTimelogDetailsById(string $id): TimeLog|RedirectResponse
     {
         try {
             return TimeLog::with(['project'])->findOrFail($id);
